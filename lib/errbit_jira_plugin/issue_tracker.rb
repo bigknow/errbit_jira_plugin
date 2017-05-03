@@ -31,6 +31,10 @@ module ErrbitJiraPlugin
       :issue_priority => {
           :label => 'Priority',
           :placeholder => 'Normal'
+      },
+      :issue_type => {
+          :label => 'Issue Type',
+          :placeholder => 'Bug'
       }
     }
 
@@ -84,32 +88,21 @@ module ErrbitJiraPlugin
       false
     end
 
-    def jira_options
-      {
-        :username => params['username'],
-        :password => params['password'],
-        :site => params['base_url'],
-        :auth_type => :basic,
-        :context_path => context_path
-      }
-    end
-
     def create_issue(title, body, user: {})
       begin
-        client = JIRA::Client.new(jira_options)
-        project = client.Project.find(params['project_id'])
+        project = jira_client.Project.find(params['project_id'])
 
-        issue_fields =  {
-                          "fields" => {
-                            "summary" => title,
-                            "description" => body,
-                            "project"=> {"id"=> project.id},
-                            "issuetype"=>{"id"=>"3"},
-                            "priority"=>{"name"=>params['issue_priority']}
-                          }
-                        }
+        issue_fields = {
+          "fields" => {
+            "summary"     => title,
+            "description" => body,
+            "project"     => {"id"   => project.id},
+            "issuetype"   => {"id"   => issue_type_for(params['issue_type'])&.id},
+            "priority"    => {"name" => params['issue_priority']}
+          }
+        }
 
-        jira_issue = client.Issue.build
+        jira_issue = jira_client.Issue.build
 
         jira_issue.save(issue_fields)
 
@@ -135,6 +128,28 @@ module ErrbitJiraPlugin
       else
         params['context_path']
       end
+    end
+
+    def issue_type_for(type)
+      types.select{|t| t.name == type}.first
+    end
+
+    def issue_types
+      @issue_types ||= jira_client.Issuetype.all
+    end
+
+    def jira_client
+      @jira_client ||= JIRA::Client.new(jira_options)
+    end
+
+    def jira_options
+      {
+        :username => params['username'],
+        :password => params['password'],
+        :site => params['base_url'],
+        :auth_type => :basic,
+        :context_path => context_path
+      }
     end
 
     def params
