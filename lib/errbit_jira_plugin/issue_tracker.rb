@@ -94,8 +94,8 @@ module ErrbitJiraPlugin
 
         issue_fields = {
           "fields" => {
-            "summary"     => title,
-            "description" => body,
+            "summary"     => title[0...50],
+            "description" => body[0...200],
             "project"     => {"id"   => project.id},
             "issuetype"   => {"id"   => issue_type_for(params['issue_type'])&.id},
             "priority"    => {"name" => params['issue_priority']}
