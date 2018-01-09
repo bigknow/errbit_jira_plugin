@@ -104,11 +104,15 @@ module ErrbitJiraPlugin
 
         jira_issue = jira_client.Issue.build
 
-        jira_issue.save(issue_fields)
+        jira_issue.save!(issue_fields)
 
-        jira_url(params['project_id'])
-      rescue JIRA::HTTPError
-        raise ErrbitJiraPlugin::IssueError, "Could not create an issue with Jira.  Please check your credentials."
+        jira_url(jira_issue.key)
+      rescue JIRA::HTTPError => e
+        if e.response&.body
+          raise ErrbitJiraPlugin::IssueError, "Could not create an issue with Jira. #{e.response.body}"
+        else
+          raise ErrbitJiraPlugin::IssueError, "Could not create an issue with Jira.  Please check your credentials."
+        end
       end
     end
 
